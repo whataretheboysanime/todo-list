@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Задачи</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <section class="auth-view" data-view="auth" hidden>
+        <form class="login-panel" id="loginForm">
+          <div class="brand-mark">✓</div>
+          <h1>Задачи</h1>
+          <label>
+            <span>Логин</span>
+            <input name="login" autocomplete="username" value="admin">
+          </label>
+          <label>
+            <span>Пароль</span>
+            <input name="password" type="password" autocomplete="current-password" value="admin">
+          </label>
+          <button class="primary-button" type="submit">Войти</button>
+          <p class="form-error" data-login-error></p>
+        </form>
+      </section>
+
+      <section class="tasks-view" data-view="tasks" hidden>
+        <header class="topbar">
+          <div class="topbar-title">
+            <button class="icon-button menu-toggle" type="button" data-action="toggle-sidebar" aria-label="Меню">☰</button>
+            <div class="app-logo">✓</div>
+            <h1>Задачи</h1>
+          </div>
+          <div class="topbar-actions">
+            <button class="icon-button" type="button" data-action="sync" title="Обновить">↻</button>
+            <button class="avatar-button" type="button" data-action="logout" title="Выйти">A</button>
+          </div>
+        </header>
+
+        <aside class="sidebar" data-sidebar>
+          <button class="create-button" type="button" data-action="open-task-modal">
+            <span>+</span>
+            Создать
+          </button>
+
+          <nav class="filter-nav" aria-label="Фильтры">
+            <button class="nav-pill is-active" type="button" data-filter="all">
+              <span>✓</span>
+              Все задачи
+            </button>
+            <button class="nav-pill" type="button" data-filter="important">
+              <span>★</span>
+              Помеченные
+            </button>
+            <button class="nav-pill" type="button" data-filter="today">
+              <span>◷</span>
+              Сегодня
+            </button>
+          </nav>
+
+          <div class="sidebar-section">
+            <div class="section-title">
+              <span>Списки</span>
+              <button class="icon-button small" type="button" data-action="open-list-modal" aria-label="Создать список">+</button>
+            </div>
+            <div class="list-nav" data-list-nav></div>
+          </div>
+        </aside>
+
+        <main class="workspace">
+          <div class="workspace-head">
+            <div>
+              <p class="eyebrow" data-active-filter>Все задачи</p>
+              <h2 data-board-title>Мои списки</h2>
+            </div>
+            <div class="stats-strip" data-stats></div>
+          </div>
+          <div class="board" data-board></div>
+        </main>
+
+        <nav class="mobile-tabs" aria-label="Быстрая навигация">
+          <button type="button" class="is-active" data-filter="all">✓<span>Все</span></button>
+          <button type="button" data-filter="important">★<span>Важные</span></button>
+          <button type="button" data-action="open-task-modal">+<span>Новая</span></button>
+          <button type="button" data-action="open-list-modal">☷<span>Списки</span></button>
+        </nav>
+      </section>
+
+      <dialog class="modal" id="taskModal">
+        <form method="dialog" class="modal-panel" id="taskForm">
+          <div class="modal-head">
+            <h3 data-task-modal-title>Новая задача</h3>
+            <button class="icon-button" type="button" data-action="close-task-modal" aria-label="Закрыть">×</button>
+          </div>
+          <input type="hidden" name="id">
+          <input type="hidden" name="parent_id">
+          <label>
+            <span>Задача</span>
+            <input name="title" required placeholder="Например, обновить паспорт">
+          </label>
+          <label>
+            <span>Список</span>
+            <select name="list_id" required></select>
+          </label>
+          <label>
+            <span>Срок</span>
+            <input name="due_date" type="date">
+          </label>
+          <label>
+            <span>Заметка</span>
+            <textarea name="notes" rows="3" placeholder="Детали, адрес, телефон или что важно не забыть"></textarea>
+          </label>
+          <label class="check-row">
+            <input name="important" type="checkbox">
+            <span>Пометить звездой</span>
+          </label>
+          <p class="form-error" data-task-error></p>
+          <div class="modal-actions">
+            <button class="ghost-button" type="button" data-action="delete-task" hidden>Удалить</button>
+            <button class="primary-button" type="submit">Сохранить</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog class="modal" id="listModal">
+        <form method="dialog" class="modal-panel" id="listForm">
+          <div class="modal-head">
+            <h3 data-list-modal-title>Новый список</h3>
+            <button class="icon-button" type="button" data-action="close-list-modal" aria-label="Закрыть">×</button>
+          </div>
+          <input type="hidden" name="id">
+          <label>
+            <span>Название</span>
+            <input name="name" required placeholder="Например, Домашние">
+          </label>
+          <label>
+            <span>Цвет</span>
+            <input name="color" type="color" value="#4f7cff">
+          </label>
+          <p class="form-error" data-list-error></p>
+          <div class="modal-actions">
+            <button class="ghost-button" type="button" data-action="delete-list" hidden>Удалить</button>
+            <button class="primary-button" type="submit">Сохранить</button>
+          </div>
+        </form>
+      </dialog>
+    </div>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
