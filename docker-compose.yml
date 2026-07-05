@@ -11,3 +11,5 @@ services:
       - ADMIN_USER=admin
       - ADMIN_PASSWORD=change-me
       - SESSION_SECRET=change-me-too
+      - APP_TIMEZONE=Europe/Moscow
+      - VAPID_SUBJECT=mailto:admin@example.com

@@ -26,7 +26,8 @@ const els = {
   listModal: document.querySelector('#listModal'),
   listForm: document.querySelector('#listForm'),
   listError: document.querySelector('[data-list-error]'),
-  listModalTitle: document.querySelector('[data-list-modal-title]')
+  listModalTitle: document.querySelector('[data-list-modal-title]'),
+  notifyButton: document.querySelector('[data-action="enable-push"]')
 };
 
 const api = {
@@ -66,6 +67,58 @@ function formatDate(iso) {
   if (!iso) return '';
   const date = new Date(`${iso}T00:00:00`);
   return new Intl.DateTimeFormat('ru', { day: 'numeric', month: 'short' }).format(date);
+}
+
+function recurrenceLabel(value) {
+  return {
+    daily: 'каждый день',
+    weekly: 'каждую неделю',
+    monthly: 'каждый месяц',
+    yearly: 'каждый год'
+  }[value] || '';
+}
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
+async function updatePushButton() {
+  if (!els.notifyButton) return;
+  if (!pushSupported()) {
+    els.notifyButton.hidden = true;
+    return;
+  }
+
+  const registration = await navigator.serviceWorker.getRegistration();
+  const subscription = registration ? await registration.pushManager.getSubscription() : null;
+  const enabled = Notification.permission === 'granted' && Boolean(subscription);
+  els.notifyButton.classList.toggle('is-on', enabled);
+  els.notifyButton.title = enabled ? 'Уведомления включены' : 'Включить уведомления';
+}
+
+async function enablePushNotifications() {
+  if (!pushSupported()) throw new Error('Этот браузер не поддерживает push-уведомления');
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') throw new Error('Разрешение на уведомления не выдано');
+
+  const registration = await navigator.serviceWorker.register('/sw.js');
+  const existing = await registration.pushManager.getSubscription();
+  const subscription = existing || await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array((await api.get('/api/push/public-key')).publicKey)
+  });
+
+  await api.post('/api/push/subscribe', { subscription });
+  await api.post('/api/push/test', {});
+  await updatePushButton();
 }
 
 function escapeHtml(value) {
@@ -137,6 +190,7 @@ async function boot() {
     if (state.session.authenticated) {
       showView('tasks');
       await loadState();
+      await updatePushButton();
     } else {
       showView('auth');
     }
@@ -273,6 +327,12 @@ function renderTask(task) {
   const due = task.due_date
     ? `<span class="meta-pill ${dueClass}">◷ ${escapeHtml(formatDate(task.due_date))}</span>`
     : '';
+  const reminder = task.reminder_time
+    ? `<span class="meta-pill reminder-pill">🔔 ${escapeHtml(task.reminder_time)}</span>`
+    : '';
+  const repeat = task.recurrence && task.recurrence !== 'none'
+    ? `<span class="meta-pill repeat-pill">↻ ${escapeHtml(recurrenceLabel(task.recurrence))}</span>`
+    : '';
   const notes = task.notes ? '<span class="meta-pill">заметка</span>' : '';
   const subtasks = children.length
     ? `<div class="subtasks">${children.map(renderSubtask).join('')}</div>`
@@ -283,7 +343,7 @@ function renderTask(task) {
       <button class="task-check ${task.completed ? 'is-done' : ''}" type="button" data-action="toggle-task" data-id="${task.id}" aria-label="Готово">${task.completed ? '✓' : ''}</button>
       <div class="task-main" role="button" tabindex="0" data-action="edit-task" data-id="${task.id}">
         <p class="task-title">${escapeHtml(task.title)}</p>
-        <div class="task-meta">${due}${notes}</div>
+        <div class="task-meta">${due}${reminder}${repeat}${notes}</div>
       </div>
       <button class="star-button ${task.important ? 'is-on' : ''}" type="button" data-action="toggle-important" data-id="${task.id}" aria-label="Пометить">${task.important ? '★' : '☆'}</button>
       <button class="subtask-add" type="button" data-action="open-subtask-modal" data-id="${task.id}">+ подзадача</button>
@@ -310,6 +370,8 @@ function openTaskModal(task = null, listId = null) {
   els.taskForm.elements.title.value = task?.title || '';
   els.taskForm.elements.list_id.value = task?.list_id || listId || state.selectedListId || state.lists[0]?.id || '';
   els.taskForm.elements.due_date.value = task?.due_date || '';
+  els.taskForm.elements.reminder_time.value = task?.reminder_time || '';
+  els.taskForm.elements.recurrence.value = task?.recurrence || 'none';
   els.taskForm.elements.notes.value = task?.notes || '';
   els.taskForm.elements.important.checked = Boolean(task?.important);
   els.taskModalTitle.textContent = isEditing ? 'Редактировать задачу' : task?.parent_id ? 'Новая подзадача' : 'Новая задача';
@@ -340,6 +402,8 @@ async function saveTask(event) {
     list_id: Number(form.get('list_id')),
     parent_id: form.get('parent_id') ? Number(form.get('parent_id')) : null,
     due_date: form.get('due_date') || null,
+    reminder_time: form.get('reminder_time') || null,
+    recurrence: form.get('recurrence') || 'none',
     notes: form.get('notes'),
     important: els.taskForm.elements.important.checked
   };
@@ -391,6 +455,15 @@ async function deleteCurrentList() {
   await loadState();
 }
 
+function resetPointerCursor() {
+  document.documentElement.style.cursor = '';
+  document.body.style.cursor = '';
+}
+
+function resetPointerCursorSoon() {
+  window.setTimeout(resetPointerCursor, 0);
+}
+
 async function handleAction(target) {
   const action = target.dataset.action;
   if (!action) return;
@@ -401,6 +474,7 @@ async function handleAction(target) {
   }
 
   if (action === 'sync') await loadState();
+  if (action === 'enable-push') await enablePushNotifications();
   if (action === 'logout') {
     await api.post('/api/logout', {});
     showView('auth');
@@ -454,6 +528,24 @@ els.loginForm.addEventListener('submit', async (event) => {
 els.taskForm.addEventListener('submit', saveTask);
 els.listForm.addEventListener('submit', saveList);
 
+els.listForm.elements.color.addEventListener('focus', () => {
+  window.addEventListener('focus', resetPointerCursorSoon, { once: true });
+  window.addEventListener('pointermove', resetPointerCursorSoon, { once: true });
+});
+
+els.listForm.elements.color.addEventListener('input', () => {
+  resetPointerCursorSoon();
+});
+
+els.listForm.elements.color.addEventListener('change', () => {
+  els.listForm.elements.color.blur();
+  resetPointerCursorSoon();
+});
+
+els.listForm.elements.color.addEventListener('blur', () => {
+  resetPointerCursorSoon();
+});
+
 document.addEventListener('click', async (event) => {
   const filterButton = event.target.closest('[data-filter]');
   if (filterButton) {
@@ -487,3 +579,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 boot();
+
+if (pushSupported()) {
+  navigator.serviceWorker.ready.then(updatePushButton).catch(() => {});
+}

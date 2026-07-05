@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Задачи</title>
+    <link rel="icon" href="/favicon.svg?v=1" type="image/svg+xml">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#171817">
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
@@ -33,6 +36,12 @@
             <h1>Задачи</h1>
           </div>
           <div class="topbar-actions">
+            <button class="icon-button notify-button" type="button" data-action="enable-push" title="Включить уведомления" aria-label="Включить уведомления">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+                <path d="M10 21h4"/>
+              </svg>
+            </button>
             <button class="icon-button" type="button" data-action="sync" title="Обновить">↻</button>
             <button class="avatar-button" type="button" data-action="logout" title="Выйти">A</button>
           </div>
@@ -106,6 +115,20 @@
           <label>
             <span>Срок</span>
             <input name="due_date" type="date">
+          </label>
+          <label>
+            <span>Напомнить</span>
+            <input name="reminder_time" type="time">
+          </label>
+          <label>
+            <span>Повтор</span>
+            <select name="recurrence">
+              <option value="none">Не повторять</option>
+              <option value="daily">Каждый день</option>
+              <option value="weekly">Каждую неделю</option>
+              <option value="monthly">Каждый месяц</option>
+              <option value="yearly">Каждый год</option>
+            </select>
           </label>
           <label>
             <span>Заметка</span>

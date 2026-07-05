@@ -35,8 +35,12 @@ password: admin
 ADMIN_USER=admin
 ADMIN_PASSWORD=strong-password
 SESSION_SECRET=long-random-secret
+APP_TIMEZONE=Europe/Moscow
+VAPID_SUBJECT=mailto:you@example.com
 PORT=3000
 ```
+
+Для браузерных push-уведомлений на VPS нужен HTTPS. VAPID-ключи создаются автоматически и сохраняются в SQLite, но можно задать свои через `VAPID_PUBLIC_KEY` и `VAPID_PRIVATE_KEY`.
 
 ## Docker
 
