@@ -182,15 +182,17 @@ function localNow() {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hourCycle: 'h23'
   }).formatToParts(new Date()).reduce((result, part) => {
     result[part.type] = part.value;
     return result;
   }, {});
 
+  const hour = parts.hour === '24' ? '00' : parts.hour;
+
   return {
     date: `${parts.year}-${parts.month}-${parts.day}`,
-    time: `${parts.hour}:${parts.minute}`
+    time: `${hour}:${parts.minute}`
   };
 }
 
